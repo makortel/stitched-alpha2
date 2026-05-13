@@ -2,6 +2,26 @@ cmake_minimum_required(VERSION 3.23...4.0)
 
 project(Stitched VERSION 1.0.0 LANGUAGES CXX)
 
+# Remove -DNDEBUG from all release-type build configurations.
+# string(REPLACE) on the FLAGS variables is unreliable because CMake populates
+# CMAKE_<LANG>_FLAGS_<CONFIG> from platform/toolchain files after project() and
+# the cache values may not yet reflect the final flags at configure time.
+# Using -UNDEBUG via add_compile_options guarantees the macro is undefined
+# regardless of what any upstream toolchain or Spack wrapper injected.
+foreach(_config Release RelWithDebInfo MinSizeRel)
+    foreach(_lang C CXX)
+        string(REPLACE "-DNDEBUG" "" CMAKE_${_lang}_FLAGS_${_config}
+            "${CMAKE_${_lang}_FLAGS_${_config}}")
+        # Also update the cache entry so the change is visible in cmake-gui/ccmake
+        set(CMAKE_${_lang}_FLAGS_${_config} "${CMAKE_${_lang}_FLAGS_${_config}}"
+            CACHE STRING "Flags for ${_lang} ${_config} builds" FORCE)
+    endforeach()
+endforeach()
+# Belt-and-suspenders: explicitly undefine NDEBUG for all build types so that
+# assert() is never compiled out, even if -DNDEBUG is injected late (e.g. by
+# Spack's compiler wrapper or a parent CMake invocation).
+add_compile_options(-UNDEBUG)
+
 # Set C++ standard (C++20 required for concepts)
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
