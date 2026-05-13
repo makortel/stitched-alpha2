@@ -61,6 +61,20 @@ find_package(CpuFeatures REQUIRED)
 get_target_property(CPU_INCLUDES CpuFeatures::cpu_features INTERFACE_INCLUDE_DIRECTORIES)
 set_target_properties(CpuFeatures::cpu_features PROPERTIES INTERFACE_INCLUDE_DIRECTORIES "${CPU_INCLUDES};${CPU_INCLUDES}/..")
 
+# Find UUID
+if(APPLE)
+    # On macOS, libuuid is part of libSystem; only the headers need locating
+    find_path(UUID_INCLUDE_DIR uuid/uuid.h REQUIRED)
+    add_library(PkgConfig::UUID INTERFACE IMPORTED)
+    set_target_properties(PkgConfig::UUID PROPERTIES
+        INTERFACE_INCLUDE_DIRECTORIES "${UUID_INCLUDE_DIR}"
+    )
+    message(STATUS "Found uuid (macOS system): ${UUID_INCLUDE_DIR}/uuid/uuid.h")
+else()
+    find_package(PkgConfig REQUIRED)
+    pkg_check_modules(UUID REQUIRED IMPORTED_TARGET uuid)
+endif()
+
 # Find ROOT
 find_package(ROOT REQUIRED COMPONENTS Core RIO Net Hist Tree)
 message(STATUS "Found ROOT: ${ROOT_VERSION} at ${ROOT_DIR}")
